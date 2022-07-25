@@ -1,0 +1,43 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    npm install
+    npm run build
+  displayName: 'npm install and build' 
+- task: Docker@2
+  inputs:
+    containerRegistry: 'svcacr'
+    repository: 'acrang.azurecr.io'
+    command: 'build'
+    Dockerfile: '**/Dockerfile' 
+
+- task: Docker@2
+  inputs:
+    containerRegistry: 'svcacr'
+    repository: 'acrang.azurecr.io'
+    command: 'push'
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+- task: AzureWebAppContainer@1
+  inputs:
+    azureSubscription: 'Pay-As-You-Go (049cc0b9-2696-4e70-871b-4366be487c19)'
+    appName: 'angapp76'
+    containers: 'acrang.azurecr.io/acrang.azurecr.io:$(build.buildId)'
